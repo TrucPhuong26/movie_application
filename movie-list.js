@@ -7,9 +7,9 @@ const LocalStrategy = require("passport-local");
 const path = require("path"); // Import the path module
 // const uri =
 //
-"mongodb+srv://<<username>>:<<password>>@moviecollectioncluster.4x9rauo.mongodb.net/moviecollectioncluster?retryWrites=true&w=majority"; //MongoDB Atlas Link
+//"mongodb+srv://<<username>>:<<password>>@moviecollectioncluster.4x9rauo.mongodb.net/moviecollectioncluster?retryWrites=true&w=majority"; //MongoDB Atlas Link
 //Connect to MongoDB using MongoDB Compass localhost
-const uri = "mongodb://127.0.0.1:27017/Movie";
+const uri = "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/?appName=Cluster0";
 // MongoDB connection URI
 const client = new MongoClient(uri);
 const app = express();
@@ -18,9 +18,12 @@ async function main() {
 try {
 await client.connect();
 console.log("Connected to MongoDB");
-const database = client.db();
-const collection =
-database.collection("MovieCollection");
+// const database = client.db();
+// const collection =
+// database.collection("MovieCollection");
+const database = client.db("MovieDB"); // tên DB trùng với tên trong URI
+const collection = database.collection("MovieCollection"); // tên collection của bạn
+
 // Adjust the collection name
 // Set up the views folder
 app.set("views", path.join(__dirname, "views"));
