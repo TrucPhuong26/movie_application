@@ -5,32 +5,29 @@ const session = require("express-session");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const path = require("path"); // Import the path module
-// const uri =
-//
-//"mongodb+srv://<<username>>:<<password>>@moviecollectioncluster.4x9rauo.mongodb.net/moviecollectioncluster?retryWrites=true&w=majority"; //MongoDB Atlas Link
-//Connect to MongoDB using MongoDB Compass localhost
+
 const uri = "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/?appName=Cluster0";
 // MongoDB connection URI
 const client = new MongoClient(uri);
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
+
+app.use(express.static(path.join(__dirname, "template")));
+
 async function main() {
 try {
 await client.connect();
 console.log("Connected to MongoDB");
-// const database = client.db();
-// const collection =
-// database.collection("MovieCollection");
+
 const database = client.db("MovieDB"); // tên DB trùng với tên trong URI
 const collection = database.collection("MovieCollection"); // tên collection của bạn
 
-// Adjust the collection name
-// Set up the views folder
 app.set("views", path.join(__dirname, "views"));
 // Trang chủ
-    app.get("/", (req, res) => {
-      res.sendFile(path.join(__dirname, "template", "movie-list.html"));
-    });
+  app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "template", "movie-list.html"));
+});
+
 // Serve Add_movie-form.html
 app.get("/add-movie-form.html", (req, res) => {
 
