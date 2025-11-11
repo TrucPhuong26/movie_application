@@ -27,11 +27,10 @@ const collection = database.collection("MovieCollection"); // tên collection c�
 // Adjust the collection name
 // Set up the views folder
 app.set("views", path.join(__dirname, "views"));
-app.get("/", (req, res) => {
-console.log("Received request for /");
-// Serve the HTML page for displaying movie lists
-res.sendFile(__dirname + "/template/movie-list.html");
-});
+// Trang chủ
+    app.get("/", (req, res) => {
+      res.sendFile(path.join(__dirname, "template", "movie-list.html"));
+    });
 // Serve Add_movie-form.html
 app.get("/add-movie-form.html", (req, res) => {
 
