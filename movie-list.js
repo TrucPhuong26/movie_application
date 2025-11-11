@@ -6,7 +6,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const path = require("path"); // Import the path module
 
-const uri = "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/?appName=Cluster0";
+const uri = "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/movieDB?retryWrites=true&w=majority&appName=Cluster0";
 // MongoDB connection URI
 const client = new MongoClient(uri);
 const app = express();
