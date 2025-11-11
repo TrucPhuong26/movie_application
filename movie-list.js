@@ -6,9 +6,19 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const path = require("path"); // Import the path module
 
-const uri = "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/movieDB?retryWrites=true&w=majority&appName=Cluster0";
+//const uri = "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/movieDB?retryWrites=true&w=majority&appName=Cluster0";
+const uri =
+  process.env.MONGO_URI ||
+  "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/MovieDB?retryWrites=true&w=majority&ssl=true&appName=Cluster0";
+
+// ✅ Kết nối MongoDB Atlas qua TLS an toàn
+const client = new MongoClient(uri, {
+  ssl: true,
+  tlsAllowInvalidCertificates: false,
+  serverSelectionTimeoutMS: 10000,
+});
 // MongoDB connection URI
-const client = new MongoClient(uri);
+//const client = new MongoClient(uri);
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -22,191 +32,305 @@ console.log("Connected to MongoDB");
 const database = client.db("MovieDB"); // tên DB trùng với tên trong URI
 const collection = database.collection("MovieCollection"); // tên collection của bạn
 
-app.set("views", path.join(__dirname, "views"));
+//app.set("views", path.join(__dirname, "views"));
 // Trang chủ
-  app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "template", "movie-list.html"));
-});
+    app.get("/", (req, res) => {
+      res.sendFile(path.join(__dirname, "template", "movie-list.html"));
+    });
 
 // Serve Add_movie-form.html
-app.get("/add-movie-form.html", (req, res) => {
+// app.get("/add-movie-form.html", (req, res) => {
 
-console.log("Received request for /add-movie-form.html");
+// console.log("Received request for /add-movie-form.html");
 
-// Serve the HTML form
+// // Serve the HTML form
 
-res.sendFile(__dirname + "/template/add-movie-form.html");
+// res.sendFile(__dirname + "/template/add-movie-form.html");
 
-});
+// });
+ app.get("/add-movie-form.html", (req, res) => {
+      res.sendFile(path.join(__dirname, "template", "add-movie-form.html"));
+    });
 // Serve book-seats-form.html
-app.get("/book-seats-form.html", (req, res) => {
+// app.get("/book-seats-form.html", (req, res) => {
 
-res.sendFile(__dirname + "/template/book-seats-form.html");
+// res.sendFile(__dirname + "/template/book-seats-form.html");
 
-});
+// });
+  app.get("/book-seats-form.html", (req, res) => {
+      res.sendFile(path.join(__dirname, "template", "book-seats-form.html"));
+    });
+
+// app.get("/get-movies", async (req, res) => {
+// const category = req.query.category;
+// // Get the selected category from query parameters
+// try {
+// // Fetch movies of the selected category
+// // from the database
+// const movies = await collection.find({ Category:
+
+// category }).toArray();
+
+// res.status(200).json(movies);
+// } catch (error) {
+// console.error("Error fetching movies:", error);
+// res.status(500).json({ error: "Failed to fetch movies" });
+// }
+// });
 app.get("/get-movies", async (req, res) => {
-const category = req.query.category;
-// Get the selected category from query parameters
-try {
-// Fetch movies of the selected category
-// from the database
-const movies = await collection.find({ Category:
+      const category = req.query.category;
+      try {
+        const movies = await collection.find({ Category: category }).toArray();
+        res.status(200).json(movies);
+      } catch (error) {
+        console.error("Error fetching movies:", error);
+        res.status(500).json({ error: "Failed to fetch movies" });
+      }
+    });
 
-category }).toArray();
+// app.get("/get-all-movies", async (req, res) => {
 
-res.status(200).json(movies);
-} catch (error) {
-console.error("Error fetching movies:", error);
-res.status(500).json({ error: "Failed to fetch movies" });
-}
-});
-app.get("/get-all-movies", async (req, res) => {
+// try {
+// const movies = await collection.find().toArray();
+// res.status(200).json(movies);
+// } catch (error) {
+// console.error("Error fetching movies:", error);
+// res.status(500).json({ error: "Failed to fetch movies" });
+// }
+// });
+ app.get("/get-all-movies", async (req, res) => {
+      try {
+        const movies = await collection.find().toArray();
+        res.status(200).json(movies);
+      } catch (error) {
+        console.error("Error fetching all movies:", error);
+        res.status(500).json({ error: "Failed to fetch all movies" });
+      }
+    });
 
-try {
-// Fetch movies of the selected category from the
+// app.get("/get-movie-details", async (req, res) => {
+// const movieName = req.query.name; // Get the selected
+// // movie name from query parameters
+// try {
 
-database
+// const movie = await collection.findOne({ "Movie name": movieName });
+// if (movie) {
+// res.status(200).json({
+// Description: movie["Description"],
+// Actors: movie["Actors"],
+// });
+// } else {
+// res.status(404).json({ error: "Movie not found" });
+// }
+// } catch (error) {
+// console.error("Error fetching movie details:",
 
-const movies = await collection.find().toArray();
-res.status(200).json(movies);
-} catch (error) {
-console.error("Error fetching movies:", error);
-res.status(500).json({ error: "Failed to fetch movies" });
-}
-});
+// error);
+
+// res.status(500).json({ error: "Failed to fetch movie details" });
+// }
+// });
+
 app.get("/get-movie-details", async (req, res) => {
-const movieName = req.query.name; // Get the selected
-// movie name from query parameters
-try {
-// Fetch movie details based on the selected
+      const movieName = req.query.name;
+      try {
+        const movie = await collection.findOne({ "Movie name": movieName });
+        if (movie) {
+          res.status(200).json({
+            Description: movie["Description"],
+            Actors: movie["Actors"],
+          });
+        } else {
+          res.status(404).json({ error: "Movie not found" });
+        }
+      } catch (error) {
+        console.error("Error fetching movie details:", error);
+        res.status(500).json({ error: "Failed to fetch movie details" });
+      }
+    });
 
-// movie name from the database
-
-const movie = await collection.findOne({ "Movie name": movieName });
-if (movie) {
-res.status(200).json({
-Description: movie["Description"],
-Actors: movie["Actors"],
-});
-} else {
-res.status(404).json({ error: "Movie not found" });
-}
-} catch (error) {
-console.error("Error fetching movie details:",
-
-error);
-
-res.status(500).json({ error: "Failed to fetch movie details" });
-}
-});
 // Handle the form submission and add a movie
+// app.post("/add-movie", async (req, res) => {
+//   try {
+//     // Insert a new movie document into the MongoDB
+//     await collection.insertOne(req.body);
+//     console.log("Added movie to the database");
+
+//     // Show alert then redirect to home page
+//     res.send(`
+//       <script>
+//         alert("Movie added successfully!");
+//         window.location.href = "/";
+//       </script>
+//     `);
+//   } catch (error) {
+//     console.error("Error adding movie:", error);
+
+//     // Render an error message on the same page
+//     res.status(500).send(`
+//       <script>
+//         alert("Failed to add the movie. Please try again!");
+//         window.location.href = "/";
+//       </script>
+//     `);
+//   }
+// });
 app.post("/add-movie", async (req, res) => {
-  try {
-    // Insert a new movie document into the MongoDB
-    await collection.insertOne(req.body);
-    console.log("Added movie to the database");
-
-    // Show alert then redirect to home page
-    res.send(`
-      <script>
-        alert("Movie added successfully!");
-        window.location.href = "/";
-      </script>
-    `);
-  } catch (error) {
-    console.error("Error adding movie:", error);
-
-    // Render an error message on the same page
-    res.status(500).send(`
-      <script>
-        alert("Failed to add the movie. Please try again!");
-        window.location.href = "/";
-      </script>
-    `);
-  }
-});
+      try {
+        await collection.insertOne(req.body);
+        console.log("Added movie to database");
+        res.send(`
+          <script>
+            alert("Movie added successfully!");
+            window.location.href = "/";
+          </script>
+        `);
+      } catch (error) {
+        console.error("Error adding movie:", error);
+        res.status(500).send(`
+          <script>
+            alert("Failed to add movie. Please try again!");
+            window.location.href = "/";
+          </script>
+        `);
+      }
+    });
 
 // Handle booking seats
-app.post("/book-seats", async (req, res) => {
-try {
-// Retrieve movie information from the request
-const movieNameToBook = req.body["Movie name"];
+// app.post("/book-seats", async (req, res) => {
+// try {
+// // Retrieve movie information from the request
+// const movieNameToBook = req.body["Movie name"];
 
-const seatsToBook = parseInt(req.body["seats-to-book"]);
+// const seatsToBook = parseInt(req.body["seats-to-book"]);
 
-// Check if the movie exists
-const existingMovie = await collection.findOne({
-"Movie name": movieNameToBook,
-});
-if (!existingMovie) {
-console.log("Movie not found in the database.");
-return res.send("Movie not found in the database.");
+// // Check if the movie exists
+// const existingMovie = await collection.findOne({
+// "Movie name": movieNameToBook,
+// });
+// if (!existingMovie) {
+// console.log("Movie not found in the database.");
+// return res.send("Movie not found in the database.");
+// }
+// // Retrieve the available seats from the existing movie document
+
+// const availableSeats = existingMovie["Available Seats"]; //Here field name should be same with databse field name
+
+// if (seatsToBook <= availableSeats) {
+// // Calculate the updated available seats
+// const updatedAvailableSeats = availableSeats -
+
+// seatsToBook;
+
+// // Update the document with new available seats
+// const result = await collection.updateOne(
+// { "Movie name": movieNameToBook },
+// { $set: { "Available Seats":
+
+// updatedAvailableSeats } } 
+// //Here field name should be same with databse field name
+
+// );
+// if (result.modifiedCount === 1) {
+// // Display an alert message on the same page
+// const alertMessage = `Booking successful for
+
+// ${seatsToBook} seat(s) in ${movieNameToBook}`;
+
+// return res.send(`
+// <script>
+// alert("${alertMessage}");
+// window.location.href = "${"/"}";
+// </script>
+// `);
+// } else {
+// console.log("Failed to update available seats");
+// const errorMessage = "Failed to update available seats";
+
+// // Display an alert on the same page
+// return res.send(`
+// <script>
+// alert("${errorMessage}");
+// window.location.href = "${"/"}";
+// </script>
+// `);
+// }
+// } else {
+// console.log(
+// `Not enough seats available for ${seatsToBook}
+
+// seat(s) in ${movieNameToBook}`
+
+// );
+// return res.send(
+// `Not enough seats available for ${seatsToBook}
+// seat(s) in ${movieNameToBook}` // This will display message
+
+// );
+// }
+// } catch (error) {
+// console.error("Error booking seats:", error);
+// return res.status(500).send("Failed to book seats");
+// }
+// });
+// } catch (error) {
+// console.error("Error connecting to MongoDB:", error);
+// }
+// }
+ app.post("/book-seats", async (req, res) => {
+      try {
+        const movieNameToBook = req.body["Movie name"];
+        const seatsToBook = parseInt(req.body["seats-to-book"]);
+
+        const existingMovie = await collection.findOne({
+          "Movie name": movieNameToBook,
+        });
+
+        if (!existingMovie) {
+          return res.send("Movie not found in the database.");
+        }
+
+        const availableSeats = existingMovie["Available Seats"];
+        if (seatsToBook <= availableSeats) {
+          const updatedAvailableSeats = availableSeats - seatsToBook;
+          const result = await collection.updateOne(
+            { "Movie name": movieNameToBook },
+            { $set: { "Available Seats": updatedAvailableSeats } }
+          );
+
+          if (result.modifiedCount === 1) {
+            return res.send(`
+              <script>
+                alert("Booking successful for ${seatsToBook} seat(s) in ${movieNameToBook}");
+                window.location.href = "/";
+              </script>
+            `);
+          } else {
+            return res.send(`
+              <script>
+                alert("Failed to update available seats");
+                window.location.href = "/";
+              </script>
+            `);
+          }
+        } else {
+          return res.send(`
+            <script>
+              alert("Not enough seats available for ${seatsToBook} seat(s) in ${movieNameToBook}");
+              window.location.href = "/";
+            </script>
+          `);
+        }
+      } catch (error) {
+        console.error("Error booking seats:", error);
+        return res.status(500).send("Failed to book seats");
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error connecting to MongoDB:", error);
+  }
 }
-// Retrieve the available seats from the existing movie document
 
-const availableSeats = existingMovie["Available Seats"]; //Here field name should be same with databse field name
-
-if (seatsToBook <= availableSeats) {
-// Calculate the updated available seats
-const updatedAvailableSeats = availableSeats -
-
-seatsToBook;
-
-// Update the document with new available seats
-const result = await collection.updateOne(
-{ "Movie name": movieNameToBook },
-{ $set: { "Available Seats":
-
-updatedAvailableSeats } } 
-//Here field name should be same with databse field name
-
-);
-if (result.modifiedCount === 1) {
-// Display an alert message on the same page
-const alertMessage = `Booking successful for
-
-${seatsToBook} seat(s) in ${movieNameToBook}`;
-
-return res.send(`
-<script>
-alert("${alertMessage}");
-window.location.href = "${"/"}";
-</script>
-`);
-} else {
-console.log("Failed to update available seats");
-const errorMessage = "Failed to update available seats";
-
-// Display an alert on the same page
-return res.send(`
-<script>
-alert("${errorMessage}");
-window.location.href = "${"/"}";
-</script>
-`);
-}
-} else {
-console.log(
-`Not enough seats available for ${seatsToBook}
-
-seat(s) in ${movieNameToBook}`
-
-);
-return res.send(
-`Not enough seats available for ${seatsToBook}
-seat(s) in ${movieNameToBook}` // This will display message
-
-);
-}
-} catch (error) {
-console.error("Error booking seats:", error);
-return res.status(500).send("Failed to book seats");
-}
-});
-} catch (error) {
-console.error("Error connecting to MongoDB:", error);
-}
-}
 main().catch(console.error);
 app.listen(process.env.PORT || 3000, process.env.IP ||
 "0.0.0.0", () => {
