@@ -421,11 +421,30 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views")); // ✅ Thêm dòng này
 
+// app.use(
+//   session({
+//     secret: "abc",
+//     resave: false,
+//     saveUninitialized: true,
+//   })
+// );
+const MongoStore = require("connect-mongo");
+
 app.use(
   session({
-    secret: "abc",
+    secret: process.env.SESSION_SECRET || "abc",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: uri,
+      collectionName: "sessions",
+      ttl: 14 * 24 * 60 * 60, // thời hạn 14 ngày
+    }),
+    cookie: {
+      secure: false, // để false khi chạy localhost, Render có HTTPS thì để true
+      httpOnly: true,
+      maxAge: 14 * 24 * 60 * 60 * 1000,
+    },
   })
 );
 
