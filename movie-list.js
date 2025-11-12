@@ -510,26 +510,26 @@ async function main() {
       res.sendFile(path.join(__dirname, "template", "wonderland.html"));
     });
 
-    // Admin Login page
-    app.get("/admin-login", (req, res) => {
-      res.render("admin-login");
-    });
+   // Admin login
+app.get("/admin-login", (req, res) => {
+  res.render("admin-login");
+});
 
-    // Admin Login form
-    app.post(
-      "/admin-login",
-      passport.authenticate("admin-local", {
-        successRedirect: "/admin-dashboard",
-        failureRedirect: "/admin-error",
-      })
-    );
+// Form submit
+app.post(
+  "/admin-login",
+  passport.authenticate("admin-local", {
+    successRedirect: "/admin-dashboard",
+    failureRedirect: "/admin-error",
+  })
+);
 
-    app.get("/admin-error", (req, res) => {
-      res.send(
-        '<script>alert("Incorrect admin username or password"); window.location.href = "/admin-login";</script>'
-      );
-    });
-
+// Error
+app.get("/admin-error", (req, res) => {
+  res.send(
+    '<script>alert("Incorrect admin username or password"); window.location.href = "/admin-login";</script>'
+  );
+});
     // Admin dashboard
     app.get("/admin-dashboard", (req, res) => {
       res.sendFile(path.join(__dirname, "template", "movie-list.html"));
