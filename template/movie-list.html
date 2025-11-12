@@ -130,14 +130,12 @@ Drama
 <!-- Create a new div for displaying movie details
 -->
 
-<div class="movie-category-box" id="movie-
-category"></div>
+<div class="movie-category-box" id="movie-category"></div>
 
 <!-- Create a new div for displaying movie details
 -->
 
-<div class="movie-details-box" id="movie-
-details"></div>
+<div class="movie-details-box" id="movie-details"></div>
 
 <br /><br />
 </div>
@@ -147,8 +145,7 @@ const movieCategoryDiv =
 document.getElementById("movie-category");
 try {
 
-const response = await fetch(`/get-
-movies?category=${category}`);
+const response = await fetch(`/get-movies?category=${category}`);
 
 const data = await response.json();
 displayMovies(data, category);
@@ -159,8 +156,7 @@ console.error("Error fetching movies:", error);
 async function getMovieDetails(movieName) {
 try {
 
-const response = await fetch(`/get-movie-
-details?name=${movieName}`);
+const response = await fetch(`/get-movie-details?name=${movieName}`);
 
 const data = await response.json();
 displayMovieDetails(data, movieName);
