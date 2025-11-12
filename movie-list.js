@@ -400,28 +400,27 @@
 // "0.0.0.0", () => {
 // console.log("Server is running");
 // });
+
 const express = require("express");
 const { MongoClient } = require("mongodb");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
+const LocalStrategy = require("passport-local");
 const path = require("path");
 
-// ✅ MongoDB URI — dùng biến môi trường nếu có (Render sẽ đọc MONGO_URI)
 const uri =
   process.env.MONGO_URI ||
   "mongodb+srv://movieuser:Vy123456@cluster0.y4v65fr.mongodb.net/MovieDB?retryWrites=true&w=majority";
 
-const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+const client = new MongoClient(uri, {
+  serverSelectionTimeoutMS: 10000,
+});
 
 const app = express();
-
-// ✅ Cấu hình view engine (EJS cho trang đăng nhập)
 app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views")); // Thư mục chứa file .ejs
+app.set("views", path.join(__dirname, "views")); // ✅ Thêm dòng này
 
-// ✅ Middleware
 app.use(
   session({
     secret: "abc",
@@ -429,16 +428,17 @@ app.use(
     saveUninitialized: true,
   })
 );
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "template")));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ✅ Admin strategy
+// ===== Passport cấu hình =====
 passport.use(
   "admin-local",
-  new LocalStrategy((username, password, done) => {
+  new LocalStrategy(function (username, password, done) {
     if (username === "Admin" && password === "12345") {
       return done(null, { username: "Aptech" });
     }
@@ -448,48 +448,55 @@ passport.use(
   })
 );
 
-// ✅ User strategy
 const users = [
   { id: 1, username: "abc", password: "123" },
   { id: 2, username: "user1", password: "user" },
 ];
+
 passport.use(
   "user-local",
-  new LocalStrategy((username, password, done) => {
+  new LocalStrategy(function (username, password, done) {
     const user = users.find((u) => u.username === username);
-    if (!user) return done(null, false, { message: "Incorrect username." });
-    if (user.password !== password)
+    if (!user) {
+      return done(null, false, { message: "Incorrect username." });
+    }
+    if (user.password !== password) {
       return done(null, false, { message: "Incorrect password." });
+    }
     return done(null, user);
   })
 );
 
-passport.serializeUser((user, done) => done(null, user.id || user.username));
-passport.deserializeUser((id, done) => {
-  const user = users.find((u) => u.id === id) || { username: id };
-  done(null, user);
+passport.serializeUser(function (user, done) {
+  done(null, user.id || user.username);
 });
+
+passport.deserializeUser(function (id, done) {
+  const user = users.find((u) => u.id === id);
+  done(null, user || { username: "Aptech" });
+});
+
+// ===== ROUTES =====
 
 async function main() {
   try {
     await client.connect();
-    console.log("✅ Connected to MongoDB Atlas");
+    console.log("✅ Connected to MongoDB");
 
-    const db = client.db("MovieDB");
-    const collection = db.collection("MovieCollection");
-
-    // ==================== ROUTES ====================
+    const database = client.db("MovieDB");
+    const collection = database.collection("MovieCollection");
 
     // Trang chủ
     app.get("/", (req, res) => {
       res.sendFile(path.join(__dirname, "template", "wonderland.html"));
     });
 
-    // ---------- ADMIN ----------
+    // Admin Login page
     app.get("/admin-login", (req, res) => {
       res.render("admin-login");
     });
 
+    // Admin Login form
     app.post(
       "/admin-login",
       passport.authenticate("admin-local", {
@@ -500,16 +507,17 @@ async function main() {
 
     app.get("/admin-error", (req, res) => {
       res.send(
-        `<script>alert("Incorrect Admin username or password"); window.location.href = "/";</script>`
+        '<script>alert("Incorrect admin username or password"); window.location.href = "/admin-login";</script>'
       );
     });
 
+    // Admin dashboard
     app.get("/admin-dashboard", (req, res) => {
       res.sendFile(path.join(__dirname, "template", "movie-list.html"));
     });
 
-    // ---------- USER ----------
-    app.get("/login", (req, res) => {
+    // User Login page
+    app.get("/user-login", (req, res) => {
       res.render("login");
     });
 
@@ -523,7 +531,7 @@ async function main() {
 
     app.get("/user-error", (req, res) => {
       res.send(
-        `<script>alert("Incorrect username or password"); window.location.href = "/";</script>`
+        '<script>alert("Incorrect username or password"); window.location.href = "/user-login";</script>'
       );
     });
 
@@ -531,175 +539,103 @@ async function main() {
       res.sendFile(path.join(__dirname, "template", "book-seats-form.html"));
     });
 
-    // ---------- MOVIE ----------
-    app.get("/get-all-movies", async (req, res) => {
-      try {
-        const movies = await collection.find().toArray();
-        res.status(200).json(movies);
-      } catch (error) {
-        console.error("Error fetching all movies:", error);
-        res.status(500).json({ error: "Failed to fetch all movies" });
-      }
+    // Guest login route (không cần xác thực)
+    app.get("/guest-login", (req, res) => {
+      res.sendFile(path.join(__dirname, "template", "wonderland.html"));
     });
 
+    // ==== Movie APIs ====
     app.get("/get-movies", async (req, res) => {
-      try {
-        const category = req.query.category;
-        const movies = await collection.find({ Category: category }).toArray();
-        res.status(200).json(movies);
-      } catch (error) {
-        console.error("Error fetching movies:", error);
-        res.status(500).json({ error: "Failed to fetch movies" });
-      }
+      const category = req.query.category;
+      const movies = await collection.find({ Category: category }).toArray();
+      res.status(200).json(movies);
+    });
+
+    app.get("/get-all-movies", async (req, res) => {
+      const movies = await collection.find().toArray();
+      res.status(200).json(movies);
     });
 
     app.get("/get-movie-details", async (req, res) => {
       const movieName = req.query.name;
-      try {
-        const movie = await collection.findOne({ "Movie name": movieName });
-        if (movie) {
-          res.status(200).json({
-            Description: movie["Description"],
-            Actors: movie["Actors"],
-          });
-        } else {
-          res.status(404).json({ error: "Movie not found" });
-        }
-      } catch (error) {
-        console.error("Error fetching movie details:", error);
-        res.status(500).json({ error: "Failed to fetch movie details" });
-      }
-    });
-
-    app.post("/add-movie", async (req, res) => {
-      try {
-        await collection.insertOne(req.body);
-        console.log("✅ Added movie to database");
-        res.send(`
-          <script>
-            alert("Movie added successfully!");
-            window.location.href = "/";
-          </script>
-        `);
-      } catch (error) {
-        console.error("Error adding movie:", error);
-        res.status(500).send(`
-          <script>
-            alert("Failed to add movie. Please try again!");
-            window.location.href = "/";
-          </script>
-        `);
-      }
-    });
-
-    // ---------- BOOK SEATS ----------
-    app.post("/book-seats", async (req, res) => {
-      try {
-        const isAdmin = req.user && req.user.username === "Aptech";
-        const movieName = req.body["Movie name"];
-        const seatsToBook = parseInt(req.body["seats-to-book"]);
-
-        const existingMovie = await collection.findOne({
-          "Movie name": movieName,
+      const movie = await collection.findOne({ "Movie name": movieName });
+      if (movie) {
+        res.status(200).json({
+          Description: movie["Description"],
+          Actors: movie["Actors"],
         });
-        if (!existingMovie)
-          return res.send(`<script>alert("Movie not found!");</script>`);
-
-        const availableSeats = existingMovie["Available Seats"];
-        if (seatsToBook <= availableSeats) {
-          const updatedSeats = availableSeats - seatsToBook;
-          const result = await collection.updateOne(
-            { "Movie name": movieName },
-            { $set: { "Available Seats": updatedSeats } }
-          );
-
-          const redirectRoute = isAdmin ? "/admin-dashboard" : "/user-dashboard";
-          if (result.modifiedCount === 1) {
-            return res.send(`
-              <script>
-                alert("Booking successful for ${seatsToBook} seat(s) in ${movieName}");
-                window.location.href = "${redirectRoute}";
-              </script>
-            `);
-          } else {
-            return res.send(`
-              <script>
-                alert("Failed to update available seats");
-                window.location.href = "${redirectRoute}";
-              </script>
-            `);
-          }
-        } else {
-          return res.send(`
-            <script>
-              alert("Not enough seats available!");
-              window.location.href = "/";
-            </script>
-          `);
-        }
-      } catch (error) {
-        console.error("Error booking seats:", error);
-        res.status(500).send("Failed to book seats");
+      } else {
+        res.status(404).json({ error: "Movie not found" });
       }
     });
 
-    // ---------- DELETE MOVIE ----------
+    // Add movie
+    app.post("/add-movie", async (req, res) => {
+      await collection.insertOne(req.body);
+      res.send(
+        '<script>alert("Movie added successfully!"); window.location.href="/admin-dashboard";</script>'
+      );
+    });
+
+    // Delete movie
     app.post("/delete-movie", async (req, res) => {
-      try {
-        const movieName = req.body["Movie name"];
-        const result = await collection.deleteOne({ "Movie name": movieName });
-        if (result.deletedCount === 1) {
-          res.send(
-            `<script>alert("Movie deleted successfully!"); window.location.href = "/admin-dashboard";</script>`
-          );
-        } else {
-          res.send(
-            `<script>alert("Movie not found!"); window.location.href = "/admin-dashboard";</script>`
-          );
-        }
-      } catch (error) {
-        console.error("Error deleting movie:", error);
-        res.status(500).send("Failed to delete movie");
-      }
-    });
-
-    // ---------- UPDATE SEATS ----------
-    app.post("/update-seats", async (req, res) => {
-      try {
-        const movieName = req.body["Movie name"];
-        const newSeats = parseInt(req.body["Available Seats"]);
-        const result = await collection.updateOne(
-          { "Movie name": movieName },
-          { $set: { "Available Seats": newSeats } }
+      const movieNameToDelete = req.body["Movie name"];
+      const result = await collection.deleteOne({
+        "Movie name": movieNameToDelete,
+      });
+      if (result.deletedCount === 1) {
+        res.send(
+          '<script>alert("Movie deleted successfully"); window.location.href="/admin-dashboard";</script>'
         );
-        if (result.modifiedCount === 1) {
-          res.send(
-            `<script>alert("Updated available seats successfully!"); window.location.href = "/admin-dashboard";</script>`
-          );
-        } else {
-          res.send(
-            `<script>alert("Movie not found or seats not changed!"); window.location.href = "/admin-dashboard";</script>`
-          );
-        }
-      } catch (error) {
-        console.error("Error updating seats:", error);
-        res.status(500).send("Failed to update seats");
+      } else {
+        res.send(
+          '<script>alert("Failed to delete movie"); window.location.href="/admin-dashboard";</script>'
+        );
       }
     });
 
-    // ---------- LOGOUT ----------
+    // Book seats
+    app.post("/book-seats", async (req, res) => {
+      const movieNameToBook = req.body["Movie name"];
+      const seatsToBook = parseInt(req.body["seats-to-book"]);
+
+      const existingMovie = await collection.findOne({
+        "Movie name": movieNameToBook,
+      });
+
+      if (!existingMovie)
+        return res.send("Movie not found in the database.");
+
+      const availableSeats = existingMovie["Available Seats"];
+      if (seatsToBook <= availableSeats) {
+        const updatedAvailableSeats = availableSeats - seatsToBook;
+        await collection.updateOne(
+          { "Movie name": movieNameToBook },
+          { $set: { "Available Seats": updatedAvailableSeats } }
+        );
+        res.send(
+          `<script>alert("Booking successful for ${seatsToBook} seat(s) in ${movieNameToBook}"); window.location.href="/user-dashboard";</script>`
+        );
+      } else {
+        res.send(
+          `<script>alert("Not enough seats available!"); window.location.href="/user-dashboard";</script>`
+        );
+      }
+    });
+
     app.get("/logout", (req, res) => {
       req.logout(() => {
         res.redirect("/");
       });
+    });
+
+    // Start server
+    app.listen(process.env.PORT || 3000, () => {
+      console.log("🚀 Server is running on Render or localhost");
     });
   } catch (error) {
     console.error("❌ Error connecting to MongoDB:", error);
   }
 }
 
-// ✅ Run server
 main().catch(console.error);
-app.listen(process.env.PORT || 3000, "0.0.0.0", () => {
-  console.log("🚀 Server is running on port 3000");
-});
